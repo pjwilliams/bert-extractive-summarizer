@@ -35,13 +35,9 @@ class SentenceHandler(object):
         """
         to_return = []
 
-        for c in doc.sents:
-            if max_length > len(c.text.strip()) > min_length:
-
-                if self.is_spacy_3:
-                    to_return.append(c.text.strip())
-                else:
-                    to_return.append(c.string.strip())
+        for line in doc.text.splitlines():
+            if max_length > len(line.strip()) > min_length:
+                to_return.append(line.strip())
 
         return to_return
 
