@@ -65,7 +65,7 @@ class ModelProcessor(object):
         algorithm: str = 'kmeans',
         use_first: bool = True,
         num_sentences: int = None
-    ) -> Tuple[List[str], np.ndarray]:
+    ) -> Tuple[List[str], np.ndarray, List[int]]:
         """
         Runs the cluster algorithm based on the hidden state. Returns both the embeddings and sentences.
 
@@ -95,7 +95,7 @@ class ModelProcessor(object):
         sentences = [content[j] for j in hidden_args]
         embeddings = np.asarray([hidden[j] for j in hidden_args])
 
-        return sentences, embeddings
+        return sentences, embeddings, hidden_args
 
     def __run_clusters(
         self,
@@ -104,7 +104,7 @@ class ModelProcessor(object):
         algorithm: str = 'kmeans',
         use_first: bool = True,
         num_sentences: int = None
-    ) -> List[str]:
+    ) -> Tuple[List[str], List[int]]:
         """
         Runs clusters and returns sentences.
 
@@ -115,9 +115,9 @@ class ModelProcessor(object):
         :param num_sentences: Number of sentences. Overrides ratio.
         :return: summarized sentences
         """
-        sentences, _ = self.cluster_runner(
+        sentences, _, indices = self.cluster_runner(
             content, ratio, algorithm, use_first, num_sentences)
-        return sentences
+        return sentences, indices
 
     def __retrieve_summarized_embeddings(
         self,
@@ -249,7 +249,7 @@ class ModelProcessor(object):
         algorithm: str = 'kmeans',
         num_sentences: int = None,
         return_as_list: bool = False
-    ) -> Union[List, str]:
+    ) -> Tuple[Union[List, str]]:
         """
         Preprocesses the sentences, runs the clusters to find the centroids, then combines the sentences.
 
@@ -263,16 +263,17 @@ class ModelProcessor(object):
         :param return_as_list: Whether or not to return sentences as list.
         :return: A summary sentence
         """
-        sentences = self.sentence_handler(body, min_length, max_length)
+        sentences, sent_num_map = self.sentence_handler(body, min_length, max_length)
 
         if sentences:
-            sentences = self.__run_clusters(
+            sentences, indices = self.__run_clusters(
                 sentences, ratio, algorithm, use_first, num_sentences)
 
+        orig_indices = [sent_num_map[i] for i in indices]
         if return_as_list:
-            return sentences
+            return sentences, orig_indices
         else:
-            return ' '.join(sentences)
+            return ' '.join(sentences), orig_indices
 
     def __call__(
         self,
@@ -284,7 +285,7 @@ class ModelProcessor(object):
         algorithm: str = 'kmeans',
         num_sentences: int = None,
         return_as_list: bool = False,
-    ) -> str:
+    ) -> Tuple[Union[List, str], List[int]]:
         """
         (utility that wraps around the run function)
         Preprocesses the sentences, runs the clusters to find the centroids, then combines the sentences.

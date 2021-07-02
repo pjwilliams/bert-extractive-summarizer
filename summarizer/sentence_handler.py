@@ -34,12 +34,14 @@ class SentenceHandler(object):
         :return: Sentences.
         """
         to_return = []
+        sent_num_map = {}
 
-        for line in doc.text.splitlines():
+        for i, line in enumerate(doc.text.splitlines()):
             if max_length > len(line.strip()) > min_length:
+                sent_num_map[len(to_return)] = i
                 to_return.append(line.strip())
 
-        return to_return
+        return to_return, sent_num_map
 
     def process(self, body: str,
                 min_length: int = 40,
