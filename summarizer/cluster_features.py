@@ -57,31 +57,23 @@ class ClusterFeatures(object):
             return model.means_
         return model.cluster_centers_
 
-    def __find_closest_args(self, centroids: np.ndarray) -> Dict:
+    def __find_closest_args(self, centroids: np.ndarray, sents_per_cluster: int) -> Dict:
         """
         Find the closest arguments to centroid.
 
         :param centroids: Centroids to find closest.
         :return: Closest arguments.
         """
-        centroid_min = 1e10
-        cur_arg = -1
-        args = {}
-        used_idx = []
+        args = set()
 
         for j, centroid in enumerate(centroids):
 
+            pairs = []
             for i, feature in enumerate(self.features):
-                value = np.linalg.norm(feature - centroid)
-
-                if value < centroid_min and i not in used_idx:
-                    cur_arg = i
-                    centroid_min = value
-
-            used_idx.append(cur_arg)
-            args[j] = cur_arg
-            centroid_min = 1e10
-            cur_arg = -1
+                distance = np.linalg.norm(feature - centroid)
+                pairs.append((distance, i))
+            pairs.sort()
+            args.update([pair[1] for pair in pairs[:sents_per_cluster]])
 
         return args
 
@@ -130,7 +122,8 @@ class ClusterFeatures(object):
 
         return k
 
-    def cluster(self, ratio: float = 0.1, num_sentences: int = None) -> \
+    def cluster(self, ratio: float = 0.1, num_sentences: int = None,
+                sents_per_cluster: int = 1) -> \
             List[int]:
         """
         Clusters sentences based on the ratio.
@@ -151,9 +144,9 @@ class ClusterFeatures(object):
         model = self.__get_model(k).fit(self.features)
 
         centroids = self.__get_centroids(model)
-        cluster_args = self.__find_closest_args(centroids)
+        cluster_args = self.__find_closest_args(centroids, sents_per_cluster)
 
-        sorted_values = sorted(cluster_args.values())
+        sorted_values = sorted(cluster_args)
         return sorted_values
 
     def __call__(self, ratio: float = 0.1, num_sentences: int = None) -> \
